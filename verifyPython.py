@@ -15,7 +15,8 @@ def verify_environment():
         "lxml": "lxml",
         "urllib" : "urllib",
         "json" : "json",
-        "re" : "re"
+        "re" : "re",
+        "truststore" : "truststore"
     }
 
     all_good = True
