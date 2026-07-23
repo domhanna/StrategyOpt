@@ -7,6 +7,7 @@ import simpy
 import gymnasium
 import stable_baselines3
 import requests
+import truststore
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, unquote
 from verifyPython import verify_environment
@@ -16,6 +17,7 @@ from timeStringToFloat import timeStringToFloat
 from FCY_Check import in_fcy
 
 verify_environment()
+truststore.inject_into_ssl()
 
 ## Web Request ##
 response = requests.get("https://imsa.results.alkamelcloud.com/",
@@ -181,6 +183,6 @@ for driver in drivers:
 
 plt.xlabel("Lap Time [s]", fontsize = 12)
 plt.ylabel("Probability", fontsize = 12)
-plt.title('Car #31 - Sebring - Lap Time Probability')
+plt.title('Car #31 - Watkins Glen - Lap Time Probability')
 plt.legend()
 plt.show()
