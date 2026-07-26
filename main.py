@@ -15,58 +15,21 @@ import json
 import re
 from timeStringToFloat import timeStringToFloat
 from FCY_Check import in_fcy
+from webRequest import web_request
+from get_dropdown_options import get_dropdown_options
+from season_event_select_GUI import season_event_select_GUI
+from series_event_select_GUI import series_event_select_GUI
 
 verify_environment()
 truststore.inject_into_ssl()
 
-## Web Request ##
-response = requests.get("https://imsa.results.alkamelcloud.com/",
-                    headers={"User-Agent": "Mozilla/5.0"})
-#print("Satus code:", response.status_code, "\n\n")
-#print("-- Web PAGE --\n")
-#print(response.text)
-response.raise_for_status()
 
-## Web Parsing ##
-html = response.text
-soup = BeautifulSoup(html, "lxml")
-eventsSelect = soup.find("select", attrs = {"name": "evvent"})
-events = eventsSelect.find_all("option")
-seasonsSelect = soup.find("select", attrs = {"name": "season"})
-seasons = seasonsSelect.find_all("option")
+base_url = series_event_select_GUI()
+params = season_event_select_GUI(base_url)
 
-season_options = []
-event_options = []
-for option in seasons:
-    season_options.append((option.text.strip(), option["value"]))
-for option in events:
-    event_options.append((option.text.strip(), option["value"]))
-
-## User Selection ##
-print("-- Seaons --")
-for i, (text, value) in enumerate(season_options):
-    print(f"{i + 1}. {text}")
-
-seasonChoice = int(input("Select a season (input list number): ")) - 1
-
-print("\n-- Races --")
-for i, (text, value) in enumerate(event_options):
-    print(f"{i + 1}. {text}")
-
-eventChoice = int(input("Select a race (input list number):")) - 1
-
-selectedSeason = season_options[seasonChoice][1]
-selectedEvent = event_options[eventChoice][1]
-
-params = {"season": selectedSeason, "evvent": selectedEvent}
-
-response = requests.get("https://imsa.results.alkamelcloud.com/", params=params)
-print(response.url, "\n\n")
+selectedSoup, final_url = web_request(base_url, params=params)
 
 ## JSON capture ##
-
-slectedHtml = response.text
-selectedSoup = BeautifulSoup(slectedHtml, "lxml")
 
 jsonFiles = selectedSoup.find_all("a", href = lambda h: h and (hl := h.lower()) and hl.endswith(".json") and "points" not in hl and "01_imsa%20weathertech" in hl and ("time%20cards" in hl or "flagsanalysiswithrcmessages" in hl))
 
@@ -75,7 +38,7 @@ relativePaths = []
 finalHour = []
 
 for link in jsonFiles:
-    urls.append(urljoin(response.url, link["href"]))
+    urls.append(urljoin(final_url, link["href"]))
     relativePaths.append(link["href"])
 
 for relativePath in relativePaths:
@@ -134,18 +97,21 @@ for session_key in sessions:
     current_start = None
     timing = sessions[session_key]["Timing"]
     flags = sessions[session_key].get("Flags")
-    for entry in flags["flags"]:
-        rec_type = entry["rec_type"]
-        time = entry["time"]
+    if flags is None:
+        fcy_windows = []
+    else:
+        for entry in flags["flags"]:
+            rec_type = entry["rec_type"]
+            time = entry["time"]
 
-        if rec_type == "FCY":
-            current_start = time
+            if rec_type == "FCY":
+                current_start = time
 
-        elif rec_type == "GF" and current_start:
-            fcy_windows.append({
-                "start" : current_start,
-                "end" : time
-            })
+            elif rec_type == "GF" and current_start:
+                fcy_windows.append({
+                    "start" : current_start,
+                    "end" : time
+                })
     #print(session_key, "\n", fcy_windows, "\n")
     for participant in timing["participants"]:
         car.setdefault(participant["number"], {
